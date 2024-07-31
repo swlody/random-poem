@@ -12,6 +12,8 @@ maud = { version = "0.26.0", features = ["axum"] }
 rand = "0.8.5"
 serde = { version = "1.0.204", features = ["derive"] }
 serde_json = "1.0.121"
+shuttle-axum = "0.47.0"
+shuttle-runtime = "0.47.0"
 sqlx = { version = "0.8.0", default-features = false, features = [
     "sqlite",
     "macros",
