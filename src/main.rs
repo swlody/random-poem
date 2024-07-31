@@ -1,6 +1,6 @@
 mod errors;
 mod poem;
-mod random;
+mod query;
 
 use sqlx::SqlitePool;
 
@@ -11,7 +11,7 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     let db = SqlitePool::connect("sqlite://poems.db").await?;
-    let app = random::routes();
+    let app = query::routes();
     let app = app.with_state(db.clone());
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:5050").await?;
