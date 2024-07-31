@@ -1,58 +1,74 @@
-use std::{collections::HashMap, fs::File, io::Read as _, sync::Arc};
-
-use axum::{extract::State, http::StatusCode, routing::get, Json, Router};
-use chrono::NaiveDate;
-use rand::Rng as _;
+use axum::{
+    body::Body,
+    extract::{Path, State},
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    routing::get,
+    Json, Router,
+};
 use serde::{Deserialize, Serialize};
+use sqlx::SqlitePool;
+use thiserror::Error;
 
 #[derive(Serialize, Deserialize, Clone)]
 struct Poem {
     pub title: String,
     pub author: String,
-    pub date: Option<NaiveDate>,
     pub content: String,
-}
-
-#[derive(Clone)]
-struct AppState {
-    poems: Arc<HashMap<String, Poem>>,
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt::init();
-    let mut poems = HashMap::<String, Poem>::new();
-    let mut file = File::open("poems.json")?;
-    let mut data = String::new();
-    file.read_to_string(&mut data)?;
-    let json: Vec<Poem> = serde_json::from_str(&data)?;
-    for poem in json {
-        poems.insert(poem.title.clone(), poem);
-    }
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::DEBUG)
+        .init();
+
+    let db = SqlitePool::connect("sqlite://poems.db").await?;
     let app = Router::new()
         .route("/random", get(random))
-        .with_state(AppState {
-            poems: Arc::new(poems),
-        });
+        .route("/random/author/:author", get(random_by_author))
+        .with_state(db.clone());
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:5050").await?;
     axum::serve(listener, app).await?;
+
+    db.close().await;
     Ok(())
 }
 
-async fn random(State(state): State<AppState>) -> (StatusCode, Json<Poem>) {
-    let mut rng = rand::thread_rng();
-    let random_index = rng.gen_range(0..state.poems.len());
-    let mut current_index = 0;
+#[derive(Error, Debug)]
+enum Error {
+    #[error(transparent)]
+    DatabaseError(#[from] sqlx::Error),
+}
 
-    let mut random_poem: Option<Poem> = None;
-    for value in state.poems.values() {
-        if current_index == random_index {
-            random_poem = Some(value.clone());
-            break;
-        }
-        current_index += 1;
+impl IntoResponse for Error {
+    fn into_response(self) -> Response {
+        (StatusCode::INTERNAL_SERVER_ERROR, Body::empty()).into_response()
     }
+}
 
-    (axum::http::StatusCode::OK, Json(random_poem.unwrap()))
+type Result<T> = std::result::Result<T, Error>;
+
+async fn random(State(db): State<SqlitePool>) -> Result<Response> {
+    let poem = sqlx::query_as!(Poem, "SELECT * FROM poems ORDER BY RANDOM()")
+        .fetch_one(&db)
+        .await?;
+    Ok((StatusCode::OK, Json(poem)).into_response())
+}
+
+async fn random_by_author(
+    Path(author): Path<String>,
+    State(db): State<SqlitePool>,
+) -> Result<Response> {
+    let author = author.replace('_', " ");
+    let poem = sqlx::query_as!(
+        Poem,
+        "SELECT * FROM poems WHERE author = $1 ORDER BY RANDOM()",
+        author
+    )
+    .fetch_one(&db)
+    .await?;
+
+    Ok((StatusCode::OK, Json(poem)).into_response())
 }
