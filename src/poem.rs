@@ -48,7 +48,7 @@ impl Poem {
                 h1 id = "poem-title" {
                     (self.title)
                 }
-                h2 id = "poem-author" {
+                h3 id = "poem-author" {
                     "By " (self.author)
                 }
                 p id = "poem-content" {
