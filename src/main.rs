@@ -10,7 +10,7 @@ use sqlx::SqlitePool;
 use tower_http::services::{ServeDir, ServeFile};
 use tracing::Level;
 
-use crate::layers::AddLayers as _;
+use crate::{errors::serve_404, layers::AddLayers as _};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -31,7 +31,7 @@ async fn main() -> anyhow::Result<()> {
         .with_state(db.clone())
         .route_service("/", ServeFile::new("static/index.html"))
         .nest_service("/static", ServeDir::new("static"))
-        .fallback_service(ServeFile::new("static/404.html"))
+        .fallback(|| async { serve_404() })
         .add_tracing_layer();
 
     // Listen and serve

@@ -4,7 +4,7 @@ use axum::{
     routing::get,
     Router,
 };
-use maud::Markup;
+use maud::{html, Markup};
 use sqlx::SqlitePool;
 
 use crate::{errors::Result, poem::Poem, render::wrap_body};
@@ -31,9 +31,29 @@ async fn specific_poem(
     Ok(body)
 }
 
+async fn author_landing(
+    Path(author): Path<String>,
+    State(db): State<SqlitePool>,
+) -> Result<Markup> {
+    // Check author exists
+    sqlx::query!("SELECT * FROM poems WHERE author = $1", author)
+        .fetch_one(&db)
+        .await?;
+
+    let body = wrap_body(&html! {
+        div id = "body-content" {
+            a href = (format!("/poem/{author}/random")) {
+                "Random Poem"
+            }
+        }
+    });
+    Ok(body)
+}
+
 pub fn routes() -> Router<SqlitePool> {
     Router::new()
         .route("/poem/:author/:title", get(specific_poem))
         .route("/poem/random", get(random))
         .route("/poem/:author/random", get(random_by_author))
+        .route("/poet/:author", get(author_landing))
 }
