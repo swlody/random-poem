@@ -47,20 +47,18 @@ impl Poem {
     }
 
     pub fn into_html(&self) -> Markup {
-        let lines = self.content.lines();
         html! {
-            html {
-                head {
-                    meta charset="utf-8";
+            div id = "poem" {
+                h1 id = "poem-title" {
+                    (self.title)
                 }
-                body {
-                    h1 { (self.title) }
-                    h2 { "By " (self.author) }
-                    p {
-                        @for line in lines {
-                            (line)
-                            br;
-                        }
+                h2 id = "poem-author" {
+                    "By " (self.author)
+                }
+                p id = "poem-content" {
+                    @for line in self.content.lines() {
+                        (line)
+                        br;
                     }
                 }
             }

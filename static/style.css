@@ -1,0 +1,16 @@
+body {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: antiquewhite;
+}
+
+#poem-title {
+  max-width: 40vw;
+}
+
+#poem-content {
+  max-width: 80vw;
+}

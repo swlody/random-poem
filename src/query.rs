@@ -5,10 +5,28 @@ use axum::{
     routing::get,
     Json, Router,
 };
-use maud::Markup;
+use maud::{html, Markup, DOCTYPE};
 use sqlx::SqlitePool;
 
 use crate::{errors::Result, poem::Poem};
+
+fn render_body(content: Markup) -> Markup {
+    html! {
+        (DOCTYPE)
+        html lang = "en" {
+            head {
+                meta charset="utf-8";
+                link rel = "stylesheet" href="/static/style.css";
+                script {
+                    "0"
+                }
+            }
+            body {
+                (content)
+            }
+        }
+    }
+}
 
 async fn api_random(State(db): State<SqlitePool>) -> Result<Response> {
     let poem = Poem::get_random(db).await?;
@@ -17,7 +35,8 @@ async fn api_random(State(db): State<SqlitePool>) -> Result<Response> {
 
 async fn html_random(State(db): State<SqlitePool>) -> Result<Markup> {
     let poem = Poem::get_random(db).await?;
-    Ok(poem.into_html())
+    let body = render_body(poem.into_html());
+    Ok(body)
 }
 
 async fn api_random_by_author(
@@ -33,7 +52,8 @@ async fn html_random_by_author(
     State(db): State<SqlitePool>,
 ) -> Result<Markup> {
     let poem = Poem::get_random_by_author(&author, db).await?;
-    Ok(poem.into_html())
+    let body = render_body(poem.into_html());
+    Ok(body)
 }
 
 async fn api_specific_poem(
@@ -49,7 +69,8 @@ async fn html_specific_poem(
     State(db): State<SqlitePool>,
 ) -> Result<Markup> {
     let poem = Poem::get_specific_poem(&author, &title, db).await?;
-    Ok(poem.into_html())
+    let body = render_body(poem.into_html());
+    Ok(body)
 }
 
 pub fn routes() -> Router<SqlitePool> {
