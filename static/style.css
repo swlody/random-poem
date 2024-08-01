@@ -5,13 +5,13 @@ body {
   align-items: center;
   justify-content: center;
   background-color: antiquewhite;
+  font-size: xx-large;
 }
 
 #body-content {
   height: 100vh;
   text-align: center;
   align-content: center;
-  font-size: xx-large;
 }
 
 #poem {
