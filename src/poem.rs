@@ -49,7 +49,9 @@ impl Poem {
                     (self.title)
                 }
                 h3 id = "poem-author" {
-                    "By " (self.author)
+                    "By " a href = (format!("/poet/{}", self.author)) {
+                        (self.author)
+                    }
                 }
                 p id = "poem-content" {
                     @for line in self.content.lines() {

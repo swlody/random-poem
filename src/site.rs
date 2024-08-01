@@ -43,7 +43,7 @@ async fn author_landing(
     let body = wrap_body(&html! {
         div id = "body-content" {
             a href = (format!("/poem/{author}/random")) {
-                "Random Poem"
+                "Click here for a random poem by " (author)
             }
         }
     });
