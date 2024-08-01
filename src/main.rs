@@ -1,12 +1,16 @@
+mod api;
 mod errors;
+mod layers;
 mod poem;
-mod query;
+mod render;
+mod site;
 
-use axum::http::{header, Request};
+use axum::Router;
 use sqlx::SqlitePool;
-use tower_http::{services::ServeDir, trace::TraceLayer};
+use tower_http::services::{ServeDir, ServeFile};
 use tracing::Level;
-use uuid::Uuid;
+
+use crate::layers::AddLayers as _;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -21,27 +25,14 @@ async fn main() -> anyhow::Result<()> {
         .map_err(|e| shuttle_runtime::Error::Database(e.to_string()))?;
 
     // Initialize routes
-    let app = query::routes()
+    let app = Router::new()
+        .merge(site::routes())
+        .merge(api::routes())
         .with_state(db.clone())
+        .route_service("/", ServeFile::new("static/index.html"))
         .nest_service("/static", ServeDir::new("static"))
-        .layer(
-            TraceLayer::new_for_http().make_span_with(|request: &Request<_>| {
-                let request_id = Uuid::new_v4();
-                let user_agent = request
-                    .headers()
-                    .get(header::USER_AGENT)
-                    .map_or("", |h| h.to_str().unwrap_or(""));
-
-                tracing::error_span!(
-                    "http-request",
-                    "http.method" = tracing::field::display(request.method()),
-                    "http.uri" = tracing::field::display(request.uri()),
-                    "http.version" = tracing::field::debug(request.version()),
-                    "http.user_agent" = tracing::field::display(user_agent),
-                    request_id = tracing::field::display(request_id),
-                )
-            }),
-        );
+        .fallback_service(ServeFile::new("static/404.html"))
+        .add_tracing_layer();
 
     // Listen and serve
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await?;

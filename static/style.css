@@ -7,6 +7,10 @@ body {
   background-color: antiquewhite;
 }
 
+#body-content {
+  text-align: center;
+}
+
 #poem-title {
   max-width: 40vw;
 }
