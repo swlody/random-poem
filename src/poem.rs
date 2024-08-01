@@ -31,7 +31,6 @@ impl Poem {
     }
 
     pub async fn get_specific_poem(author: &str, title: &str, db: SqlitePool) -> Result<Self> {
-        // TODO middleware to replace _ with spaces
         let poem = sqlx::query_as!(
             Self,
             "SELECT * FROM poems WHERE author = $1 AND title = $2",
