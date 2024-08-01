@@ -1,12 +1,13 @@
 use axum::{
     extract::{Path, State},
     http::StatusCode,
-    response::{IntoResponse as _, Response},
+    response::{IntoResponse as _, Redirect, Response},
     routing::get,
     Json, Router,
 };
 use maud::{html, Markup, DOCTYPE};
 use sqlx::SqlitePool;
+use tower_http::services::ServeFile;
 
 use crate::{errors::Result, poem::Poem};
 
@@ -33,10 +34,12 @@ async fn api_random(State(db): State<SqlitePool>) -> Result<Response> {
     Ok((StatusCode::OK, Json(poem)).into_response())
 }
 
-async fn html_random(State(db): State<SqlitePool>) -> Result<Markup> {
+async fn html_random(State(db): State<SqlitePool>) -> Result<Response> {
     let poem = Poem::get_random(db).await?;
-    let body = render_body(poem.into_html());
-    Ok(body)
+    // TODO don't do this twice
+    let author = poem.author.replace(' ', "_");
+    let title = poem.title.replace(' ', "_");
+    Ok(Redirect::to(&format!("/poem/{author}/{title}")).into_response())
 }
 
 async fn api_random_by_author(
@@ -50,10 +53,10 @@ async fn api_random_by_author(
 async fn html_random_by_author(
     Path(author): Path<String>,
     State(db): State<SqlitePool>,
-) -> Result<Markup> {
+) -> Result<Response> {
     let poem = Poem::get_random_by_author(&author, db).await?;
-    let body = render_body(poem.into_html());
-    Ok(body)
+    let title = poem.title.replace(' ', "_");
+    Ok(Redirect::to(&format!("/poem/{author}/{title}")).into_response())
 }
 
 async fn api_specific_poem(
@@ -75,13 +78,13 @@ async fn html_specific_poem(
 
 pub fn routes() -> Router<SqlitePool> {
     Router::new()
-        .route("/:author/:title", get(html_specific_poem))
-        .route("/random", get(html_random))
-        // TODO make /author/random if there are no poems titled "random"
-        .route("/random/:author", get(html_random_by_author))
-        .route("/api/:author/:title", get(api_specific_poem))
-        .route("/api/random", get(api_random))
-        .route("/api/random/:author", get(api_random_by_author))
+        .nest_service("/", ServeFile::new("static/index.html"))
+        .route("/poem/:author/:title", get(html_specific_poem))
+        .route("/poem/random", get(html_random))
+        .route("/poem/:author/random", get(html_random_by_author))
+        .route("/api/poem/:author/:title", get(api_specific_poem))
+        .route("/api/poem/random", get(api_random))
+        .route("/api/poem/:author/random", get(api_random_by_author))
 }
 
 #[cfg(test)]
