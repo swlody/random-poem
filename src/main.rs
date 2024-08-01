@@ -5,8 +5,9 @@ mod poem;
 mod render;
 mod site;
 
-use axum::Router;
+use axum::{serve, Router};
 use sqlx::SqlitePool;
+use tokio::net::TcpListener;
 use tower_http::services::{ServeDir, ServeFile};
 use tracing::Level;
 
@@ -20,9 +21,7 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     // Connect to db
-    let db = SqlitePool::connect("sqlite://poems.sqlite3")
-        .await
-        .map_err(|e| shuttle_runtime::Error::Database(e.to_string()))?;
+    let db = SqlitePool::connect("sqlite://poems.sqlite3").await?;
 
     // Initialize routes
     let app = Router::new()
@@ -35,8 +34,8 @@ async fn main() -> anyhow::Result<()> {
         .add_tracing_layer();
 
     // Listen and serve
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await?;
-    axum::serve(listener, app).await?;
+    let listener = TcpListener::bind("0.0.0.0:8080").await?;
+    serve(listener, app).await?;
 
     // Cleanup db connection
     db.close().await;
