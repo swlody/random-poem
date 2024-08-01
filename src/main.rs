@@ -28,9 +28,9 @@ async fn main() -> anyhow::Result<()> {
         .route_service("/", ServeFile::new("static/index.html"))
         .merge(site::routes())
         .nest("/api", api::routes())
-        .with_state(db.clone())
         .nest_service("/static", ServeDir::new("static"))
         .fallback(|| async { serve_404() })
+        .with_state(db.clone())
         .add_tracing_layer();
 
     // Listen and serve
