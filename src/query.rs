@@ -75,10 +75,11 @@ async fn html_specific_poem(
 
 pub fn routes() -> Router<SqlitePool> {
     Router::new()
-        .route("/author/:author/title/:title", get(html_specific_poem))
+        .route("/:author/:title", get(html_specific_poem))
         .route("/random", get(html_random))
+        // TODO make /author/random if there are no poems titled "random"
         .route("/random/:author", get(html_random_by_author))
-        .route("/api/author/:author/title/:title", get(api_specific_poem))
+        .route("/api/:author/:title", get(api_specific_poem))
         .route("/api/random", get(api_random))
         .route("/api/random/:author", get(api_random_by_author))
 }
