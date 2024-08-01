@@ -8,6 +8,10 @@ body {
   font-size: calc(10px + 0.8vh);
 }
 
+a {
+    color: darkcyan;
+}
+
 #body-content {
   height: 100vh;
   text-align: center;
