@@ -10,10 +10,7 @@ use sqlx::SqlitePool;
 use crate::{errors::Result, poem::Poem, render::render_body};
 
 async fn html_random(State(db): State<SqlitePool>) -> Result<Response> {
-    let poem = Poem::get_random(db).await?;
-    // TODO don't do this twice
-    let author = poem.author.replace(' ', "_");
-    let title = poem.title.replace(' ', "_");
+    let Poem { author, title, .. } = Poem::get_random(db).await?;
     Ok(Redirect::to(&format!("/poem/{author}/{title}")).into_response())
 }
 
@@ -21,8 +18,7 @@ async fn html_random_by_author(
     Path(author): Path<String>,
     State(db): State<SqlitePool>,
 ) -> Result<Response> {
-    let poem = Poem::get_random_by_author(&author, db).await?;
-    let title = poem.title.replace(' ', "_");
+    let Poem { author, title, .. } = Poem::get_random_by_author(&author, db).await?;
     Ok(Redirect::to(&format!("/poem/{author}/{title}")).into_response())
 }
 

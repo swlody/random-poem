@@ -20,7 +20,6 @@ impl Poem {
     }
 
     pub async fn get_random_by_author(author: &str, db: SqlitePool) -> Result<Self> {
-        let author = author.replace('_', " ");
         let poem = sqlx::query_as!(
             Self,
             "SELECT * FROM poems WHERE author = $1 ORDER BY RANDOM()",
@@ -33,8 +32,6 @@ impl Poem {
 
     pub async fn get_specific_poem(author: &str, title: &str, db: SqlitePool) -> Result<Self> {
         // TODO middleware to replace _ with spaces
-        let author = author.replace('_', " ");
-        let title = title.replace('_', " ");
         let poem = sqlx::query_as!(
             Self,
             "SELECT * FROM poems WHERE author = $1 AND title = $2",
