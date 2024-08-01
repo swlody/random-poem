@@ -93,7 +93,7 @@ mod tests {
 
     #[tokio::test]
     async fn can_get_random_poem() -> anyhow::Result<()> {
-        let db = SqlitePool::connect("sqlite://poems.db").await?;
+        let db = SqlitePool::connect("sqlite://poems.sqlite3").await?;
         let app = routes().with_state(db);
         let response = app
             .oneshot(Request::builder().uri("/api/random").body(Body::empty())?)

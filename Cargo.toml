@@ -13,7 +13,7 @@ rand = "0.8.5"
 serde = { version = "1.0.204", features = ["derive"] }
 serde_json = "1.0.121"
 shuttle-axum = "0.47.0"
-shuttle-runtime = "0.47.0"
+shuttle-runtime = { version = "0.47.0", default-features = false }
 sqlx = { version = "0.8.0", default-features = false, features = [
     "sqlite",
     "macros",
@@ -23,9 +23,10 @@ sqlx = { version = "0.8.0", default-features = false, features = [
 thiserror = "1.0.63"
 tokio = { version = "1.39.2", features = ["full"] }
 tower = "0.4.13"
-tower-http = { version = "0.5.2", features = ["fs"] }
+tower-http = { version = "0.5.2", features = ["fs", "trace"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+uuid = "1.10.0"
 
 [dev-dependencies]
 http-body-util = "0.1.2"

@@ -329,16 +329,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "colored"
-version = "2.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cbf2150cce219b664a8a70df7a1f933836724b503f8a413af9365b4dcc4d90b8"
-dependencies = [
- "lazy_static",
- "windows-sys 0.48.0",
-]
-
-[[package]]
 name = "comfy-table"
 version = "6.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -524,6 +514,7 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]
@@ -1871,7 +1862,6 @@ checksum = "07c18036c9640c0e74c0ce4a67cc11e4e6603179305f74558035fe5a033ec77f"
 dependencies = [
  "anyhow",
  "async-trait",
- "colored",
  "serde",
  "serde_json",
  "shuttle-codegen",
@@ -1883,7 +1873,6 @@ dependencies = [
  "tokio-stream",
  "tokio-util",
  "tonic",
- "tracing-subscriber",
 ]
 
 [[package]]
