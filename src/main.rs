@@ -2,28 +2,34 @@ mod errors;
 mod poem;
 mod query;
 
-use axum::http::Request;
+use axum::http::{header, Request};
 use sqlx::SqlitePool;
 use tower_http::{services::ServeDir, trace::TraceLayer};
+use tracing::Level;
 use uuid::Uuid;
 
-#[shuttle_runtime::main]
-async fn main() -> shuttle_axum::ShuttleAxum {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    // Initialize tracing subscribe
     tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::DEBUG)
+        .with_max_level(Level::DEBUG)
         .init();
+
+    // Connect to db
     let db = SqlitePool::connect("sqlite://poems.sqlite3")
         .await
         .map_err(|e| shuttle_runtime::Error::Database(e.to_string()))?;
+
+    // Initialize routes
     let app = query::routes()
-        .with_state(db)
+        .with_state(db.clone())
         .nest_service("/static", ServeDir::new("static"))
         .layer(
             TraceLayer::new_for_http().make_span_with(|request: &Request<_>| {
                 let request_id = Uuid::new_v4();
                 let user_agent = request
                     .headers()
-                    .get(axum::http::header::USER_AGENT)
+                    .get(header::USER_AGENT)
                     .map_or("", |h| h.to_str().unwrap_or(""));
 
                 tracing::error_span!(
@@ -37,7 +43,12 @@ async fn main() -> shuttle_axum::ShuttleAxum {
             }),
         );
 
-    Ok(app.into())
+    // Listen and serve
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:8080").await?;
+    axum::serve(listener, app).await?;
 
-    // db.close().await;
+    // Cleanup db connection
+    db.close().await;
+
+    Ok(())
 }
