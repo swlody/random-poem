@@ -26,10 +26,10 @@ async fn main() -> anyhow::Result<()> {
 
     // Initialize routes
     let app = Router::new()
+        .route_service("/", ServeFile::new("static/index.html"))
         .merge(site::routes())
         .nest("/api", api::routes())
         .with_state(db.clone())
-        .route_service("/", ServeFile::new("static/index.html"))
         .nest_service("/static", ServeDir::new("static"))
         .fallback(|| async { serve_404() })
         .add_tracing_layer();
