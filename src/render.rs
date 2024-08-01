@@ -1,6 +1,6 @@
 use maud::{html, Markup, DOCTYPE};
 
-pub fn render_body(content: Markup) -> Markup {
+pub fn wrap_body(content: &Markup) -> Markup {
     html! {
         (DOCTYPE)
         html lang = "en" {

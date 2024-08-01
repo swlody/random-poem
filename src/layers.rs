@@ -5,6 +5,7 @@ use axum::{
 use tower_http::trace::TraceLayer;
 use uuid::Uuid;
 
+#[allow(clippy::module_name_repetitions)]
 pub trait AddLayers {
     fn add_tracing_layer(self) -> Router;
 }

@@ -43,7 +43,7 @@ impl Poem {
         Ok(poem)
     }
 
-    pub fn into_html(&self) -> Markup {
+    pub fn into_html(self) -> Markup {
         html! {
             div id = "poem" {
                 h1 id = "poem-title" {

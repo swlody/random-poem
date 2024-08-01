@@ -14,10 +14,12 @@ pub enum Error {
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         match self {
-            Error::DatabaseError(sqlx::Error::RowNotFound) => {
+            Self::DatabaseError(sqlx::Error::RowNotFound) => {
                 (StatusCode::NOT_FOUND, Body::empty()).into_response()
             }
-            _ => (StatusCode::INTERNAL_SERVER_ERROR, Body::empty()).into_response(),
+            Self::DatabaseError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, Body::empty()).into_response()
+            }
         }
     }
 }

@@ -36,3 +36,31 @@ pub fn routes() -> Router<SqlitePool> {
         .route("/api/poem/random", get(api_random))
         .route("/api/poem/:author/random", get(api_random_by_author))
 }
+
+#[cfg(test)]
+mod tests {
+    use axum::{
+        body::Body,
+        http::{Request, StatusCode},
+    };
+    use http_body_util::BodyExt;
+    use tower::ServiceExt;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn can_get_random_poem() -> anyhow::Result<()> {
+        let db = SqlitePool::connect("sqlite://poems.sqlite3").await?;
+        let app = routes().with_state(db);
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/poem/random")
+                    .body(Body::empty())?,
+            )
+            .await?;
+        assert_eq!(StatusCode::OK, response.status());
+        assert!(!response.into_body().collect().await?.to_bytes().is_empty());
+        Ok(())
+    }
+}
