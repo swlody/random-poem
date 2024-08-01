@@ -10,7 +10,7 @@ use sqlx::SqlitePool;
 use crate::{errors::Result, poem::Poem, render::wrap_body};
 
 async fn random(State(db): State<SqlitePool>) -> Result<Response> {
-    let Poem { author, title, .. } = Poem::get_random(db).await?;
+    let Poem { author, title, .. } = Poem::random(db).await?;
     Ok(Redirect::to(&format!("/poem/{author}/{title}")).into_response())
 }
 
@@ -18,7 +18,7 @@ async fn random_by_author(
     Path(author): Path<String>,
     State(db): State<SqlitePool>,
 ) -> Result<Response> {
-    let Poem { author, title, .. } = Poem::get_random_by_author(&author, db).await?;
+    let Poem { author, title, .. } = Poem::random_by_author(&author, db).await?;
     Ok(Redirect::to(&format!("/poem/{author}/{title}")).into_response())
 }
 
@@ -26,7 +26,7 @@ async fn specific_poem(
     Path((author, title)): Path<(String, String)>,
     State(db): State<SqlitePool>,
 ) -> Result<Markup> {
-    let poem = Poem::get_specific_poem(&author, &title, db).await?;
+    let poem = Poem::from_author_and_title(&author, &title, db).await?;
     let body = wrap_body(&poem.into_html());
     Ok(body)
 }
@@ -36,7 +36,7 @@ async fn author_landing(
     State(db): State<SqlitePool>,
 ) -> Result<Markup> {
     // Check author exists
-    Poem::get_random_by_author(&author, db).await?;
+    Poem::random_by_author(&author, db).await?;
 
     let body = wrap_body(&html! {
         div id = "body-content" {

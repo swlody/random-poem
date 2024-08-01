@@ -10,7 +10,7 @@ use sqlx::SqlitePool;
 use crate::{errors::Result, poem::Poem};
 
 async fn random(State(db): State<SqlitePool>) -> Result<Response> {
-    let poem = Poem::get_random(db).await?;
+    let poem = Poem::random(db).await?;
     Ok((StatusCode::OK, Json(poem)).into_response())
 }
 
@@ -18,7 +18,7 @@ async fn random_by_author(
     Path(author): Path<String>,
     State(db): State<SqlitePool>,
 ) -> Result<Response> {
-    let poem = Poem::get_random_by_author(&author, db).await?;
+    let poem = Poem::random_by_author(&author, db).await?;
     Ok((StatusCode::OK, Json(poem)).into_response())
 }
 
@@ -26,7 +26,7 @@ async fn specific_poem(
     Path((author, title)): Path<(String, String)>,
     State(db): State<SqlitePool>,
 ) -> Result<Response> {
-    let poem = Poem::get_specific_poem(&author, &title, db).await?;
+    let poem = Poem::from_author_and_title(&author, &title, db).await?;
     Ok((StatusCode::OK, Json(poem)).into_response())
 }
 

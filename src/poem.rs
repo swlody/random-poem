@@ -12,14 +12,16 @@ pub struct Poem {
 }
 
 impl Poem {
-    pub async fn get_random(db: SqlitePool) -> Result<Self> {
+    pub async fn random(db: SqlitePool) -> Result<Self> {
+        // TODO this is obviously weighted towards more prolific poets,
+        // maybe we should get a random poet and then a random poem from that poet?
         let poem = sqlx::query_as!(Self, "SELECT * FROM poems ORDER BY RANDOM()")
             .fetch_one(&db)
             .await?;
         Ok(poem)
     }
 
-    pub async fn get_random_by_author(author: &str, db: SqlitePool) -> Result<Self> {
+    pub async fn random_by_author(author: &str, db: SqlitePool) -> Result<Self> {
         let poem = sqlx::query_as!(
             Self,
             "SELECT * FROM poems WHERE author = $1 ORDER BY RANDOM()",
@@ -30,7 +32,7 @@ impl Poem {
         Ok(poem)
     }
 
-    pub async fn get_specific_poem(author: &str, title: &str, db: SqlitePool) -> Result<Self> {
+    pub async fn from_author_and_title(author: &str, title: &str, db: SqlitePool) -> Result<Self> {
         let poem = sqlx::query_as!(
             Self,
             "SELECT * FROM poems WHERE author = $1 AND title = $2",
