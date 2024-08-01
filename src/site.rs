@@ -36,9 +36,7 @@ async fn author_landing(
     State(db): State<SqlitePool>,
 ) -> Result<Markup> {
     // Check author exists
-    sqlx::query!("SELECT * FROM poems WHERE author = $1", author)
-        .fetch_one(&db)
-        .await?;
+    Poem::get_random_by_author(&author, db).await?;
 
     let body = wrap_body(&html! {
         div id = "body-content" {
