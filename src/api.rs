@@ -9,12 +9,12 @@ use sqlx::SqlitePool;
 
 use crate::{errors::Result, poem::Poem};
 
-async fn api_random(State(db): State<SqlitePool>) -> Result<Response> {
+async fn random(State(db): State<SqlitePool>) -> Result<Response> {
     let poem = Poem::get_random(db).await?;
     Ok((StatusCode::OK, Json(poem)).into_response())
 }
 
-async fn api_random_by_author(
+async fn random_by_author(
     Path(author): Path<String>,
     State(db): State<SqlitePool>,
 ) -> Result<Response> {
@@ -22,7 +22,7 @@ async fn api_random_by_author(
     Ok((StatusCode::OK, Json(poem)).into_response())
 }
 
-async fn api_specific_poem(
+async fn specific_poem(
     Path((author, title)): Path<(String, String)>,
     State(db): State<SqlitePool>,
 ) -> Result<Response> {
@@ -32,9 +32,9 @@ async fn api_specific_poem(
 
 pub fn routes() -> Router<SqlitePool> {
     Router::new()
-        .route("/api/poem/:author/:title", get(api_specific_poem))
-        .route("/api/poem/random", get(api_random))
-        .route("/api/poem/:author/random", get(api_random_by_author))
+        .route("/poem/:author/:title", get(specific_poem))
+        .route("/poem/random", get(random))
+        .route("/poem/:author/random", get(random_by_author))
 }
 
 #[cfg(test)]
@@ -53,11 +53,7 @@ mod tests {
         let db = SqlitePool::connect("sqlite://poems.sqlite3").await?;
         let app = routes().with_state(db);
         let response = app
-            .oneshot(
-                Request::builder()
-                    .uri("/api/poem/random")
-                    .body(Body::empty())?,
-            )
+            .oneshot(Request::builder().uri("/poem/random").body(Body::empty())?)
             .await?;
         assert_eq!(StatusCode::OK, response.status());
         assert!(!response.into_body().collect().await?.to_bytes().is_empty());

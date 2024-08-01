@@ -27,7 +27,7 @@ async fn main() -> anyhow::Result<()> {
     // Initialize routes
     let app = Router::new()
         .merge(site::routes())
-        .merge(api::routes())
+        .nest("/api", api::routes())
         .with_state(db.clone())
         .route_service("/", ServeFile::new("static/index.html"))
         .nest_service("/static", ServeDir::new("static"))

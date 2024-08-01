@@ -9,12 +9,12 @@ use sqlx::SqlitePool;
 
 use crate::{errors::Result, poem::Poem, render::wrap_body};
 
-async fn html_random(State(db): State<SqlitePool>) -> Result<Response> {
+async fn random(State(db): State<SqlitePool>) -> Result<Response> {
     let Poem { author, title, .. } = Poem::get_random(db).await?;
     Ok(Redirect::to(&format!("/poem/{author}/{title}")).into_response())
 }
 
-async fn html_random_by_author(
+async fn random_by_author(
     Path(author): Path<String>,
     State(db): State<SqlitePool>,
 ) -> Result<Response> {
@@ -22,7 +22,7 @@ async fn html_random_by_author(
     Ok(Redirect::to(&format!("/poem/{author}/{title}")).into_response())
 }
 
-async fn html_specific_poem(
+async fn specific_poem(
     Path((author, title)): Path<(String, String)>,
     State(db): State<SqlitePool>,
 ) -> Result<Markup> {
@@ -33,7 +33,7 @@ async fn html_specific_poem(
 
 pub fn routes() -> Router<SqlitePool> {
     Router::new()
-        .route("/poem/:author/:title", get(html_specific_poem))
-        .route("/poem/random", get(html_random))
-        .route("/poem/:author/random", get(html_random_by_author))
+        .route("/poem/:author/:title", get(specific_poem))
+        .route("/poem/random", get(random))
+        .route("/poem/:author/random", get(random_by_author))
 }
