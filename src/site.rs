@@ -10,14 +10,14 @@ use urlencoding::encode;
 
 use crate::{errors::Result, poem::Poem, render::wrap_body};
 
-async fn random(State(db): State<SqlitePool>) -> Result<Response> {
+async fn random_poem(State(db): State<SqlitePool>) -> Result<Response> {
     let Poem { author, title, .. } = Poem::random(db).await?;
     let author = encode(&author);
     let title = encode(&title);
     Ok(Redirect::to(&format!("/poem/{author}/{title}")).into_response())
 }
 
-async fn random_by_author(
+async fn random_poem_by_author(
     Path(author): Path<String>,
     State(db): State<SqlitePool>,
 ) -> Result<Response> {
@@ -56,8 +56,8 @@ async fn author_landing(
 pub fn routes() -> Router<SqlitePool> {
     Router::new()
         .route("/poem/:author/:title", get(specific_poem))
-        .route("/poem/random", get(random))
-        .route("/poem/:author/random", get(random_by_author))
+        .route("/poem/random", get(random_poem))
+        .route("/poem/:author/random", get(random_poem_by_author))
         .route("/poet/:author", get(author_landing))
 }
 
@@ -89,7 +89,6 @@ mod tests {
             .with_context(|| format!("{:?}", response))?
             .to_owned();
         assert!(response.into_body().collect().await?.to_bytes().is_empty());
-        dbg!(&redirect);
 
         // Follow redirect to ensure poem actually exists:
         let response = app
