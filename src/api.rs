@@ -51,12 +51,27 @@ mod tests {
     #[tokio::test]
     async fn can_get_random_poem() -> anyhow::Result<()> {
         let db = SqlitePool::connect("sqlite://poems.sqlite3").await?;
-        let app = routes().with_state(db);
+        let app = routes().with_state(db.clone());
         let response = app
-            .oneshot(Request::builder().uri("/poem/random").body(Body::empty())?)
+            .oneshot(Request::get("/poem/random").body(Body::empty())?)
             .await?;
         assert_eq!(StatusCode::OK, response.status());
         assert!(!response.into_body().collect().await?.to_bytes().is_empty());
+        db.close().await;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn can_get_specific_poem() -> anyhow::Result<()> {
+        let db = SqlitePool::connect("sqlite://poems.sqlite3").await?;
+        let app = crate::layers::AddLayers::add_tracing_layer(routes().with_state(db.clone()));
+        let response = app
+            .oneshot(Request::get("/poem/Edgar%20Allan%20Poe/The%20Raven").body(Body::empty())?)
+            .await?;
+        assert_eq!(StatusCode::OK, response.status());
+        let body = response.into_body().collect().await?.to_bytes();
+        let json = serde_json::from_str::<Poem>(std::str::from_utf8(&body)?)?;
+        insta::assert_json_snapshot!(json);
         Ok(())
     }
 }
