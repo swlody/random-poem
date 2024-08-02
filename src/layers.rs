@@ -15,9 +15,9 @@ pub trait AddLayers {
 
 #[derive(Clone, Copy)]
 pub struct MakeRequestUuidV7;
-
 impl MakeRequestId for MakeRequestUuidV7 {
     fn make_request_id<B>(&mut self, _request: &Request<B>) -> Option<RequestId> {
+        // Use UUIDv7 so that request ID can be sorted by time
         let request_id = Uuid::now_v7().to_string().parse().unwrap();
         Some(RequestId::new(request_id))
     }
@@ -25,6 +25,7 @@ impl MakeRequestId for MakeRequestUuidV7 {
 
 impl AddLayers for Router {
     fn add_tracing_layer(self) -> Self {
+        // Enables tracing for each request and adds a request ID header to resposne
         self.layer(
             TraceLayer::new_for_http()
                 .make_span_with(DefaultMakeSpan::new().include_headers(true))

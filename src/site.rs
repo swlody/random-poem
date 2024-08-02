@@ -10,11 +10,15 @@ use urlencoding::encode;
 
 use crate::{errors::Result, poem::Poem, render::wrap_body};
 
+// Maybe replace encoding for redirects:
+// Space: "%20" -> " "
+// Colon: "%3A" -> ":"
+// Ampersand: "%26" -> "&"
+// Command: "%2C" -> ","
+
 async fn random_poem(State(db): State<SqlitePool>) -> Result<Response> {
     let Poem { author, title, .. } = Poem::random(db).await?;
-    let author = encode(&author);
-    let title = encode(&title);
-    Ok(Redirect::to(&format!("/poem/{author}/{title}")).into_response())
+    Ok(Redirect::to(&format!("/poem/{}/{}", encode(&author), encode(&title))).into_response())
 }
 
 async fn random_poem_by_author(
@@ -22,9 +26,7 @@ async fn random_poem_by_author(
     State(db): State<SqlitePool>,
 ) -> Result<Response> {
     let Poem { author, title, .. } = Poem::random_by_author(&author, db).await?;
-    let author = encode(&author);
-    let title = encode(&title);
-    Ok(Redirect::to(&format!("/poem/{author}/{title}")).into_response())
+    Ok(Redirect::to(&format!("/poem/{}/{}", encode(&author), encode(&title))).into_response())
 }
 
 async fn specific_poem(
@@ -40,7 +42,7 @@ async fn author_landing(
     Path(author): Path<String>,
     State(db): State<SqlitePool>,
 ) -> Result<Markup> {
-    // Check author exists
+    // Check author exists - DB error will return a 404
     Poem::random_by_author(&author, db).await?;
 
     let body = wrap_body(&html! {
@@ -63,6 +65,8 @@ pub fn routes() -> Router<SqlitePool> {
 
 #[cfg(test)]
 mod tests {
+    use std::str;
+
     use anyhow::Context as _;
     use axum::{
         body::Body,
@@ -77,10 +81,14 @@ mod tests {
     async fn can_get_random_poem() -> anyhow::Result<()> {
         let db = SqlitePool::connect("sqlite://poems.sqlite3").await?;
         let mut app = routes().with_state(db.clone());
+
+        // First call random URL to get redirect location
         let response = app
             .call(Request::get("/poem/random").body(Body::empty())?)
             .await?;
+
         assert_eq!(StatusCode::SEE_OTHER, response.status());
+        // Convert redirect to string, this could fail if it's not encoded nicely
         let redirect = response
             .headers()
             .get("location")
@@ -90,7 +98,7 @@ mod tests {
             .to_owned();
         assert!(response.into_body().collect().await?.to_bytes().is_empty());
 
-        // Follow redirect to ensure poem actually exists:
+        // Follow redirect to ensure poem actually exists
         let response = app
             .call(Request::get(&redirect).body(Body::empty())?)
             .await?;
@@ -108,13 +116,15 @@ mod tests {
     async fn can_get_specific_poem() -> anyhow::Result<()> {
         let db = SqlitePool::connect("sqlite://poems.sqlite3").await?;
         let app = crate::layers::AddLayers::add_tracing_layer(routes().with_state(db.clone()));
+
         let response = app
             .oneshot(Request::get("/poem/Edgar%20Allan%20Poe/The%20Raven").body(Body::empty())?)
             .await?;
+
         assert_eq!(StatusCode::OK, response.status());
         let body = response.into_body().collect().await?.to_bytes();
-        let s = std::str::from_utf8(&body)?;
-        insta::assert_snapshot!(s);
+        insta::assert_snapshot!(str::from_utf8(&body)?);
+
         Ok(())
     }
 }

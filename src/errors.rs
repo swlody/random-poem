@@ -31,6 +31,7 @@ pub enum Error {
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         match self {
+            // RowNotFound is expected, anything else is a problem
             Self::DatabaseError(sqlx::Error::RowNotFound) => serve_404(),
             Self::DatabaseError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, Body::empty()).into_response()
