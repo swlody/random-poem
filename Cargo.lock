@@ -1489,7 +1489,8 @@ dependencies = [
 [[package]]
 name = "rubenvy"
 version = "0.1.0"
-source = "git+https://github.com/swlody/rubenvy.git#6ad7f51fcc1e8664105250e3b00799cfc2fd0e92"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8fd94030d108d362193609b8b603cd8a9a738d9cbdf9f027cd5f29e01899e2dd"
 dependencies = [
  "dotenvy",
 ]

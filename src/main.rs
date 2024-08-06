@@ -5,6 +5,7 @@ mod poem;
 mod render;
 mod site;
 
+use anyhow::Result;
 use axum::{serve, Router};
 use secrecy::{ExposeSecret, Secret};
 use sqlx::SqlitePool;
@@ -15,7 +16,7 @@ use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _
 
 use crate::{errors::serve_404, layers::AddLayers as _};
 
-async fn run() -> anyhow::Result<()> {
+async fn run() -> Result<()> {
     // Initialize tracing subscribe
     tracing_subscriber::fmt()
         .with_target(true)
@@ -48,8 +49,8 @@ async fn run() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn main() -> anyhow::Result<()> {
-    rubenvy::rubenvy(rubenvy::Environment::Development)?;
+fn main() -> Result<()> {
+    rubenvy::rubenvy_auto()?;
 
     let dsn = Secret::new(std::env::var("SENTRY_DSN")?);
     let _guard = sentry::init((
