@@ -6,19 +6,23 @@ mod render;
 mod site;
 
 use axum::{serve, Router};
+use secrecy::{ExposeSecret, Secret};
 use sqlx::SqlitePool;
 use tokio::net::TcpListener;
 use tower_http::services::{ServeDir, ServeFile};
 use tracing::Level;
+use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _};
 
 use crate::{errors::serve_404, layers::AddLayers as _};
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn run() -> anyhow::Result<()> {
     // Initialize tracing subscribe
     tracing_subscriber::fmt()
+        .with_target(true)
         .with_max_level(Level::DEBUG)
-        .init();
+        .finish()
+        .with(sentry::integrations::tracing::layer())
+        .try_init()?;
 
     // Connect to db
     let db = SqlitePool::connect("sqlite://poems.sqlite3").await?;
@@ -31,7 +35,8 @@ async fn main() -> anyhow::Result<()> {
         .nest_service("/static", ServeDir::new("static"))
         .fallback(|| async { serve_404() })
         .with_state(db.clone())
-        .add_tracing_layer();
+        .with_tracing_layer()
+        .with_sentry_layer();
 
     // Listen and serve
     let listener = TcpListener::bind("0.0.0.0:8080").await?;
@@ -41,4 +46,23 @@ async fn main() -> anyhow::Result<()> {
     db.close().await;
 
     Ok(())
+}
+
+fn main() -> anyhow::Result<()> {
+    rubenvy::rubenvy(rubenvy::Environment::Development)?;
+
+    let dsn = Secret::new(std::env::var("SENTRY_DSN")?);
+    let _guard = sentry::init((
+        dsn.expose_secret().as_str(),
+        sentry::ClientOptions {
+            release: sentry::release_name!(),
+            traces_sample_rate: 1.0,
+            ..Default::default()
+        },
+    ));
+
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()?
+        .block_on(run())
 }
