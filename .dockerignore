@@ -1,2 +1,11 @@
 fly.toml
 .git/
+target/
+.env.local
+poems.sqlite3-shm
+poems.sqlite-wal
+.github/
+.vscode/
+src/snapshots
+.rustfmt.toml
+README.md

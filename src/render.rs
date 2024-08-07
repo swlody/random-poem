@@ -1,5 +1,6 @@
 use maud::{html, Markup, DOCTYPE};
 
+#[tracing::instrument]
 pub fn wrap_body(content: &Markup) -> Markup {
     html! {
         (DOCTYPE)

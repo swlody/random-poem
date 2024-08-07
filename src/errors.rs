@@ -8,6 +8,7 @@ use thiserror::Error;
 
 use crate::render::wrap_body;
 
+#[tracing::instrument]
 pub fn serve_404() -> Response {
     let body = wrap_body(&html! {
         div id="body-content" {

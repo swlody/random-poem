@@ -16,11 +16,13 @@ use crate::{errors::Result, poem::Poem, render::wrap_body};
 // Ampersand: "%26" -> "&"
 // Command: "%2C" -> ","
 
+#[tracing::instrument]
 async fn random_poem(State(db): State<SqlitePool>) -> Result<Response> {
     let Poem { author, title, .. } = Poem::random(db).await?;
     Ok(Redirect::to(&format!("/poem/{}/{}", encode(&author), encode(&title))).into_response())
 }
 
+#[tracing::instrument]
 async fn random_poem_by_author(
     Path(author): Path<String>,
     State(db): State<SqlitePool>,
@@ -29,6 +31,7 @@ async fn random_poem_by_author(
     Ok(Redirect::to(&format!("/poem/{}/{}", encode(&author), encode(&title))).into_response())
 }
 
+#[tracing::instrument]
 async fn specific_poem(
     Path((author, title)): Path<(String, String)>,
     State(db): State<SqlitePool>,
@@ -38,6 +41,7 @@ async fn specific_poem(
     Ok(body)
 }
 
+#[tracing::instrument]
 async fn author_landing(
     Path(author): Path<String>,
     State(db): State<SqlitePool>,

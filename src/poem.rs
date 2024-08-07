@@ -4,7 +4,7 @@ use sqlx::SqlitePool;
 
 use crate::errors::Result;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Poem {
     pub title: String,
     pub author: String,
@@ -12,6 +12,7 @@ pub struct Poem {
 }
 
 impl Poem {
+    #[tracing::instrument]
     pub async fn random(db: SqlitePool) -> Result<Self> {
         // TODO this is obviously weighted towards more prolific poets,
         // maybe we should get a random poet and then a random poem from that poet?
@@ -21,6 +22,7 @@ impl Poem {
         Ok(poem)
     }
 
+    #[tracing::instrument]
     pub async fn random_by_author(author: &str, db: SqlitePool) -> Result<Self> {
         let poem = sqlx::query_as!(
             Self,
@@ -32,6 +34,7 @@ impl Poem {
         Ok(poem)
     }
 
+    #[tracing::instrument]
     pub async fn from_author_and_title(author: &str, title: &str, db: SqlitePool) -> Result<Self> {
         let poem = sqlx::query_as!(
             Self,
@@ -44,6 +47,7 @@ impl Poem {
         Ok(poem)
     }
 
+    #[tracing::instrument]
     pub fn into_html(self) -> Markup {
         html! {
             div id = "poem" {

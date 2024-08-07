@@ -9,11 +9,13 @@ use sqlx::SqlitePool;
 
 use crate::{errors::Result, poem::Poem};
 
+#[tracing::instrument]
 async fn random_poem(State(db): State<SqlitePool>) -> Result<Response> {
     let poem = Poem::random(db).await?;
     Ok((StatusCode::OK, Json(poem)).into_response())
 }
 
+#[tracing::instrument]
 async fn random_poem_by_author(
     Path(author): Path<String>,
     State(db): State<SqlitePool>,
@@ -22,6 +24,7 @@ async fn random_poem_by_author(
     Ok((StatusCode::OK, Json(poem)).into_response())
 }
 
+#[tracing::instrument]
 async fn specific_poem(
     Path((author, title)): Path<(String, String)>,
     State(db): State<SqlitePool>,
