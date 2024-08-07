@@ -1,6 +1,8 @@
-use axum::{http::Request, Router};
+use std::task::{Context, Poll};
+
+use axum::{body::Body, http::Request, Router};
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
-use tower::ServiceBuilder;
+use tower::{Layer, Service, ServiceBuilder};
 use tower_http::{
     request_id::{MakeRequestId, RequestId},
     trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
@@ -20,12 +22,49 @@ impl MakeRequestId for MakeRequestUuidV7 {
     fn make_request_id<B>(&mut self, _request: &Request<B>) -> Option<RequestId> {
         // Use UUIDv7 so that request ID can be sorted by time
         let request_id = Uuid::now_v7();
-        // TODO This is more appropriately addded along with other sentry layers.
-        // Create a new middleware to read x-request-id and add it to sentry scope.
-        sentry::configure_scope(|scope| {
-            scope.set_tag("request_id", request_id);
-        });
         Some(RequestId::new(request_id.to_string().parse().unwrap()))
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct SentryRequestIdLayer;
+
+impl<S> Layer<S> for SentryRequestIdLayer {
+    type Service = SentryRequestIdService<S>;
+
+    fn layer(&self, service: S) -> Self::Service {
+        SentryRequestIdService { service }
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct SentryRequestIdService<S> {
+    service: S,
+}
+
+impl<S> Service<Request<Body>> for SentryRequestIdService<S>
+where
+    S: Service<Request<Body>>,
+{
+    type Response = S::Response;
+    type Error = S::Error;
+    type Future = S::Future;
+
+    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.service.poll_ready(cx)
+    }
+
+    fn call(&mut self, request: Request<Body>) -> Self::Future {
+        if let Some(request_id) = request
+            .headers()
+            .get("x-request-id")
+            .and_then(|header| header.to_str().ok())
+        {
+            sentry::configure_scope(|scope| {
+                scope.set_tag("request_id", request_id);
+            });
+        }
+        self.service.call(request)
     }
 }
 
@@ -46,7 +85,8 @@ impl AddLayers for Router {
     fn with_sentry_layer(self) -> Self {
         let sentry_service = ServiceBuilder::new()
             .layer(NewSentryLayer::new_from_top())
-            .layer(SentryHttpLayer::with_transaction());
+            .layer(SentryHttpLayer::with_transaction())
+            .layer(SentryRequestIdLayer);
         self.layer(sentry_service)
     }
 }

@@ -36,8 +36,8 @@ async fn run() -> Result<()> {
         .nest_service("/static", ServeDir::new("static"))
         .fallback(|| async { serve_404() })
         .with_state(db.clone())
-        .with_tracing_layer()
-        .with_sentry_layer();
+        .with_sentry_layer()
+        .with_tracing_layer();
 
     // Listen and serve
     let listener = TcpListener::bind("0.0.0.0:8080").await?;
