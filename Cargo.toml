@@ -10,7 +10,7 @@ lto = "thin"
 [dependencies]
 anyhow = "1.0.86"
 axum = { version = "0.7.5", features = ["macros"] }
-rubenvy = "0.1.0"
+rubenvy = "0.1.1"
 maud = { version = "0.26.0", features = ["axum"] }
 secrecy = "0.8.0"
 sentry = { version = "0.34.0", default-features = false, features = [
