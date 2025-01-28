@@ -59,12 +59,20 @@ async fn author_landing(
     Ok(body)
 }
 
+#[tracing::instrument]
+async fn poem_of_the_day(State(db): State<SqlitePool>) -> Result<Markup> {
+    let poem = Poem::poem_of_the_day(db).await?;
+    let body = wrap_body(&poem.into_html());
+    Ok(body)
+}
+
 pub fn routes() -> Router<SqlitePool> {
     Router::new()
         .route("/poem/:author/:title", get(specific_poem))
         .route("/poem/random", get(random_poem))
         .route("/poem/:author/random", get(random_poem_by_author))
         .route("/poet/:author", get(author_landing))
+        .route("/today", get(poem_of_the_day))
 }
 
 #[cfg(test)]
