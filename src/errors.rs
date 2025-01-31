@@ -1,5 +1,4 @@
 use axum::{
-    body::Body,
     http::StatusCode,
     response::{Html, IntoResponse, Response},
 };
@@ -16,12 +15,12 @@ pub enum Error {
     RenderError(#[from] rinja::Error),
 }
 
-#[derive(Template)]
-#[template(path = "404.html")]
-struct NotFoundTemplate;
-
 #[tracing::instrument]
 pub fn serve_404() -> Result<impl IntoResponse> {
+    #[derive(Template)]
+    #[template(path = "404.html")]
+    struct NotFoundTemplate;
+
     Ok(Html(NotFoundTemplate.render()?))
 }
 
@@ -40,9 +39,7 @@ impl IntoResponse for Error {
                 .render()
                 .map(|html| html.into_response())
                 .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR.into_response()),
-            Self::RenderError(_) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, Body::empty()).into_response()
-            }
+            Self::RenderError(_) => (StatusCode::INTERNAL_SERVER_ERROR).into_response(),
         }
     }
 }

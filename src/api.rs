@@ -1,36 +1,35 @@
 use axum::{
     extract::{Path, State},
     http::StatusCode,
-    response::{IntoResponse as _, Response},
+    response::IntoResponse,
     routing::get,
-    Json, Router,
+    Router,
 };
 use sqlx::SqlitePool;
 
 use crate::{errors::Result, poem::Poem};
 
 #[tracing::instrument]
-async fn random_poem(State(db): State<SqlitePool>) -> Result<Response> {
-    let poem = Poem::random(db).await?;
-    Ok((StatusCode::OK, Json(poem)).into_response())
+async fn random_poem(State(db): State<SqlitePool>) -> Result<impl IntoResponse> {
+    Poem::random(db).await?.into_json()
 }
 
 #[tracing::instrument]
 async fn random_poem_by_author(
     Path(author): Path<String>,
     State(db): State<SqlitePool>,
-) -> Result<Response> {
-    let poem = Poem::random_by_author(&author, db).await?;
-    Ok((StatusCode::OK, Json(poem)).into_response())
+) -> Result<impl IntoResponse> {
+    Poem::random_by_author(&author, db).await?.into_json()
 }
 
 #[tracing::instrument]
 async fn specific_poem(
     Path((author, title)): Path<(String, String)>,
     State(db): State<SqlitePool>,
-) -> Result<Response> {
-    let poem = Poem::from_author_and_title(&author, &title, db).await?;
-    Ok((StatusCode::OK, Json(poem)).into_response())
+) -> Result<impl IntoResponse> {
+    Poem::from_author_and_title(&author, &title, db)
+        .await?
+        .into_json()
 }
 
 #[tracing::instrument]

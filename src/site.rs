@@ -10,12 +10,12 @@ use urlencoding::encode;
 
 use crate::{errors::Result, poem::Poem};
 
-#[derive(Template)]
-#[template(path = "index.html")]
-struct IndexTemplate;
-
 #[tracing::instrument]
 async fn index() -> Result<impl IntoResponse> {
+    #[derive(Template)]
+    #[template(path = "index.html")]
+    struct IndexTemplate;
+
     Ok(Html(IndexTemplate.render()?))
 }
 
@@ -53,8 +53,9 @@ async fn specific_poem(
     Path((author, title)): Path<(String, String)>,
     State(db): State<SqlitePool>,
 ) -> Result<impl IntoResponse> {
-    let poem = Poem::from_author_and_title(&author, &title, db).await?;
-    poem.into_html()
+    Poem::from_author_and_title(&author, &title, db)
+        .await?
+        .into_html()
 }
 
 #[tracing::instrument]
@@ -69,15 +70,14 @@ async fn author_landing(
     }
 
     // Check author exists - DB error will return a 404
-    Poem::random_by_author(&author, db).await?;
+    let _ = Poem::random_by_author(&author, db).await?;
 
     Ok(Html(AuthorTemplate { author }.render()?))
 }
 
 #[tracing::instrument]
 async fn poem_of_the_day(State(db): State<SqlitePool>) -> Result<impl IntoResponse> {
-    let poem = Poem::poem_of_the_day(db).await?;
-    poem.into_html()
+    Poem::poem_of_the_day(db).await?.into_html()
 }
 
 pub fn routes() -> Router<SqlitePool> {

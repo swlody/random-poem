@@ -1,4 +1,4 @@
-use axum::response::Html;
+use axum::{response::Html, Json};
 use chrono::{Datelike, Utc};
 use rand::{Rng, SeedableRng as _};
 use rinja::Template;
@@ -87,6 +87,11 @@ impl Poem {
     #[tracing::instrument]
     pub fn into_html(self) -> Result<Html<String>> {
         Ok(Html(self.render()?))
+    }
+
+    #[tracing::instrument]
+    pub fn into_json(self) -> Result<Json<Poem>> {
+        Ok(Json(self))
     }
 }
 
