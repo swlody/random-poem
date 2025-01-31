@@ -2,12 +2,17 @@ use std::task::{Context, Poll};
 
 use axum::{body::Body, http::Request, Router};
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
+use std::{future::Future, pin::Pin};
 use tower::{Layer, Service, ServiceBuilder};
 use tower_http::{
     request_id::{MakeRequestId, RequestId},
     trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
     ServiceBuilderExt as _,
 };
+
+use axum::http::{Response, StatusCode};
+use sentry::protocol::SpanStatus;
+
 use uuid::Uuid;
 
 #[allow(clippy::module_name_repetitions)]
@@ -68,6 +73,89 @@ where
     }
 }
 
+#[derive(Clone)]
+pub struct SentryReportStatusCodeLayer;
+
+impl<S> Layer<S> for SentryReportStatusCodeLayer {
+    type Service = SentryReportStatusCodeService<S>;
+
+    fn layer(&self, inner: S) -> Self::Service {
+        SentryReportStatusCodeService { inner }
+    }
+}
+
+fn convert_http_status_to_sentry_status(http_status: StatusCode) -> SpanStatus {
+    match http_status {
+        StatusCode::OK => SpanStatus::Ok,
+        StatusCode::UNAUTHORIZED => SpanStatus::Unauthenticated,
+        StatusCode::FORBIDDEN => SpanStatus::PermissionDenied,
+        StatusCode::NOT_FOUND => SpanStatus::NotFound,
+        StatusCode::CONFLICT => SpanStatus::AlreadyExists,
+        StatusCode::PRECONDITION_FAILED => SpanStatus::FailedPrecondition,
+        StatusCode::TOO_MANY_REQUESTS => SpanStatus::ResourceExhausted,
+        StatusCode::NOT_IMPLEMENTED => SpanStatus::Unimplemented,
+        StatusCode::SERVICE_UNAVAILABLE => SpanStatus::Unavailable,
+
+        other => {
+            let code = other.as_u16();
+            if (100..=399).contains(&code) {
+                SpanStatus::Ok
+            } else if (400..=499).contains(&code) {
+                SpanStatus::InvalidArgument
+            } else if (500..=599).contains(&code) {
+                SpanStatus::InternalError
+            } else {
+                SpanStatus::UnknownError
+            }
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct SentryReportStatusCodeService<S> {
+    inner: S,
+}
+
+impl<S, ReqBody> Service<Request<ReqBody>> for SentryReportStatusCodeService<S>
+where
+    S: Service<Request<ReqBody>, Response = Response<Body>>,
+    S::Future: Send + 'static,
+    S::Error: Into<axum::BoxError>,
+{
+    type Response = Response<Body>;
+    type Error = S::Error;
+    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
+
+    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.inner.poll_ready(cx)
+    }
+
+    fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
+        let future = self.inner.call(req);
+
+        Box::pin(async move {
+            let response = future.await?;
+
+            // Extract HTTP status code
+            let http_status = response.status();
+            let sentry_status = convert_http_status_to_sentry_status(http_status);
+
+            // Report status code to Sentry
+            sentry::configure_scope(|scope| {
+                if let Some(span) = scope.get_span() {
+                    span.set_status(sentry_status)
+                };
+                scope.set_tag(
+                    "http.response.status_code",
+                    http_status.as_u16().to_string(),
+                );
+            });
+
+            Ok(response)
+        })
+    }
+}
+
 impl AddLayers for Router {
     fn with_tracing_layer(self) -> Self {
         // Enables tracing for each request and adds a request ID header to resposne
@@ -86,7 +174,8 @@ impl AddLayers for Router {
         let sentry_service = ServiceBuilder::new()
             .layer(NewSentryLayer::new_from_top())
             .layer(SentryHttpLayer::with_transaction())
-            .layer(SentryRequestIdLayer);
+            .layer(SentryRequestIdLayer)
+            .layer(SentryReportStatusCodeLayer);
         self.layer(sentry_service)
     }
 }

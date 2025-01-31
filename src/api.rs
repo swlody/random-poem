@@ -45,9 +45,9 @@ async fn health(State(db): State<SqlitePool>) -> StatusCode {
 pub fn routes() -> Router<SqlitePool> {
     Router::new()
         .route("/health", get(health))
-        .route("/poem/:author/:title", get(specific_poem))
+        .route("/poem/{author}/{title}", get(specific_poem))
         .route("/poem/random", get(random_poem))
-        .route("/poem/:author/random", get(random_poem_by_author))
+        .route("/poem/{author}/random", get(random_poem_by_author))
 }
 
 #[cfg(test)]

@@ -1,0 +1,26 @@
+{
+  "version": "4",
+  "specifiers": {
+    "npm:prettier-plugin-jinja-template@^1.5.0": "1.5.0_prettier@3.4.2",
+    "npm:prettier@^3.3.3": "3.4.2"
+  },
+  "npm": {
+    "prettier-plugin-jinja-template@1.5.0_prettier@3.4.2": {
+      "integrity": "sha512-gLOnCmM8j/psoO+s1L/M3chKmZEO7zrqhodbD+xRONrmOaYhU7Y9gLxlTVm++MeuRt3hA0jev6TmIlNFcr2hYA==",
+      "dependencies": [
+        "prettier"
+      ]
+    },
+    "prettier@3.4.2": {
+      "integrity": "sha512-e9MewbtFo+Fevyuxn/4rrcDAaq0IYxPGLvObpQjiZBMAzB9IGmzlnG9RZy3FFas+eBMu2vA0CszMeduow5dIuQ=="
+    }
+  },
+  "workspace": {
+    "packageJson": {
+      "dependencies": [
+        "npm:prettier-plugin-jinja-template@^1.5.0",
+        "npm:prettier@^3.3.3"
+      ]
+    }
+  }
+}

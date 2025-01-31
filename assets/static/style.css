@@ -9,10 +9,10 @@ body {
 }
 
 a {
-    color: darkcyan;
+  color: darkcyan;
 }
 
-#body-content {
+main {
   height: 100vh;
   text-align: center;
   align-content: center;

@@ -1,0 +1,9 @@
+{% extends "layout.html" %}
+
+{% block page_title %}Random poem{% endblock %}
+
+{% block main %}
+  <a href="/poem/{{ author }}/random">
+    Click here for a random poem by {{ author }}
+  </a>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "layout.html" %}
+
+{% block page_title %}{{ author }} - {{ title }}{% endblock %}
+
+{% block main %}
+  <h1 id="poem-title">{{ title }}</h1>
+  <h3 id="poem-author">By <a href="/poet/{{ author }}">{{ author }}</a></h3>
+  <p id="poem-content">
+    {% for line in content.lines() %}
+      {{ line }}
+      <br />
+    {% endfor %}
+  </p>
+{% endblock %}

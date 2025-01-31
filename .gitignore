@@ -6,3 +6,5 @@ poems.sqlite3-shm
 poems.sqlite3-wal
 
 .env.local
+
+assets/node_modules

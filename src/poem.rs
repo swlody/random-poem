@@ -1,12 +1,14 @@
+use axum::response::Html;
 use chrono::{Datelike, Utc};
-use maud::{html, Markup};
 use rand::{Rng, SeedableRng as _};
+use rinja::Template;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
 use crate::errors::Result;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Template, Serialize, Deserialize, Clone, Debug)]
+#[template(path = "poem.html")]
 pub struct Poem {
     pub title: String,
     pub author: String,
@@ -54,7 +56,7 @@ impl Poem {
         let today = Utc::now().num_days_from_ce();
         let days = u64::try_from(today).expect("System clock is very confused");
         let mut rng = rand::rngs::SmallRng::seed_from_u64(days);
-        let random_choice = rng.gen_range(0.0..=1.0);
+        let random_choice = rng.random_range(0.0..=1.0);
 
         // TODO fairness in ORDERING
         // TODO test performance vs alternate query
@@ -83,25 +85,8 @@ impl Poem {
     }
 
     #[tracing::instrument]
-    pub fn into_html(self) -> Markup {
-        html! {
-            div id = "poem" {
-                h1 id = "poem-title" {
-                    (self.title)
-                }
-                h3 id = "poem-author" {
-                    "By " a href = (format!("/poet/{}", self.author)) {
-                        (self.author)
-                    }
-                }
-                p id = "poem-content" {
-                    @for line in self.content.lines() {
-                        (line)
-                        br;
-                    }
-                }
-            }
-        }
+    pub fn into_html(self) -> Result<Html<String>> {
+        Ok(Html(self.render()?))
     }
 }
 

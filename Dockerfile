@@ -31,6 +31,6 @@ WORKDIR /app
 COPY --from=builder /app/target/release/dial-a-poem /usr/local/bin
 
 COPY poems.sqlite3 /app/poems.sqlite3
-COPY static/ /app/static
+COPY assets/static/ /app/assets/static
 
 ENTRYPOINT ["/usr/local/bin/dial-a-poem"]

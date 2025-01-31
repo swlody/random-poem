@@ -1,14 +1,23 @@
 use axum::{
     extract::{Path, State},
-    response::{IntoResponse as _, Redirect, Response},
+    response::{Html, IntoResponse, Redirect},
     routing::get,
     Router,
 };
-use maud::{html, Markup};
+use rinja::Template;
 use sqlx::SqlitePool;
 use urlencoding::encode;
 
-use crate::{errors::Result, poem::Poem, render::wrap_body};
+use crate::{errors::Result, poem::Poem};
+
+#[derive(Template)]
+#[template(path = "index.html")]
+struct IndexTemplate;
+
+#[tracing::instrument]
+async fn index() -> Result<impl IntoResponse> {
+    Ok(Html(IndexTemplate.render()?))
+}
 
 // Maybe replace encoding for redirects:
 // Space: "%20" -> " "
@@ -17,62 +26,68 @@ use crate::{errors::Result, poem::Poem, render::wrap_body};
 // Command: "%2C" -> ","
 
 #[tracing::instrument]
-async fn random_poem(State(db): State<SqlitePool>) -> Result<Response> {
+async fn random_poem(State(db): State<SqlitePool>) -> Result<impl IntoResponse> {
     let Poem { author, title, .. } = Poem::random(db).await?;
-    Ok(Redirect::to(&format!("/poem/{}/{}", encode(&author), encode(&title))).into_response())
+    Ok(Redirect::to(&format!(
+        "/poem/{}/{}",
+        encode(&author),
+        encode(&title)
+    )))
 }
 
 #[tracing::instrument]
 async fn random_poem_by_author(
     Path(author): Path<String>,
     State(db): State<SqlitePool>,
-) -> Result<Response> {
+) -> Result<impl IntoResponse> {
     let Poem { author, title, .. } = Poem::random_by_author(&author, db).await?;
-    Ok(Redirect::to(&format!("/poem/{}/{}", encode(&author), encode(&title))).into_response())
+    Ok(Redirect::to(&format!(
+        "/poem/{}/{}",
+        encode(&author),
+        encode(&title)
+    )))
 }
 
 #[tracing::instrument]
 async fn specific_poem(
     Path((author, title)): Path<(String, String)>,
     State(db): State<SqlitePool>,
-) -> Result<Markup> {
+) -> Result<impl IntoResponse> {
     let poem = Poem::from_author_and_title(&author, &title, db).await?;
-    let body = wrap_body(&poem.into_html());
-    Ok(body)
+    poem.into_html()
 }
 
 #[tracing::instrument]
 async fn author_landing(
     Path(author): Path<String>,
     State(db): State<SqlitePool>,
-) -> Result<Markup> {
+) -> Result<impl IntoResponse> {
+    #[derive(Template)]
+    #[template(path = "author.html")]
+    struct AuthorTemplate {
+        author: String,
+    }
+
     // Check author exists - DB error will return a 404
     Poem::random_by_author(&author, db).await?;
 
-    let body = wrap_body(&html! {
-        div id = "body-content" {
-            a href = (format!("/poem/{author}/random")) {
-                "Click here for a random poem by " (author)
-            }
-        }
-    });
-    Ok(body)
+    Ok(Html(AuthorTemplate { author }.render()?))
 }
 
 #[tracing::instrument]
-async fn poem_of_the_day(State(db): State<SqlitePool>) -> Result<Markup> {
+async fn poem_of_the_day(State(db): State<SqlitePool>) -> Result<impl IntoResponse> {
     let poem = Poem::poem_of_the_day(db).await?;
-    let body = wrap_body(&poem.into_html());
-    Ok(body)
+    poem.into_html()
 }
 
 pub fn routes() -> Router<SqlitePool> {
     Router::new()
-        .route("/poem/:author/:title", get(specific_poem))
+        .route("/", get(index))
+        .route("/poem/{author}/{title}", get(specific_poem))
         .route("/poem/random", get(random_poem))
-        .route("/poem/:author/random", get(random_poem_by_author))
-        .route("/poet/:author", get(author_landing))
-        .route("/today", get(poem_of_the_day))
+        .route("/poem/{author}/random", get(random_poem_by_author))
+        .route("/poet/{author}", get(author_landing))
+    // .route("/today", get(poem_of_the_day))
 }
 
 #[cfg(test)]

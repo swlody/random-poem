@@ -1,40 +1,46 @@
 use axum::{
     body::Body,
     http::StatusCode,
-    response::{IntoResponse, Response},
+    response::{Html, IntoResponse, Response},
 };
-use maud::html;
 use thiserror::Error;
 
-use crate::render::wrap_body;
-
-#[tracing::instrument]
-pub fn serve_404() -> Response {
-    let body = wrap_body(&html! {
-        div id="body-content" {
-            p {
-                "There is no poem here."
-            }
-            a href="/poem/random" {
-                "Click for a random poem"
-            }
-        }
-    });
-    (StatusCode::NOT_FOUND, body).into_response()
-}
+use rinja::Template;
 
 #[derive(Error, Debug)]
 pub enum Error {
     #[error(transparent)]
     DatabaseError(#[from] sqlx::Error),
+
+    #[error(transparent)]
+    RenderError(#[from] rinja::Error),
 }
+
+#[derive(Template)]
+#[template(path = "404.html")]
+struct NotFoundTemplate;
+
+#[tracing::instrument]
+pub fn serve_404() -> Result<impl IntoResponse> {
+    Ok(Html(NotFoundTemplate.render()?))
+}
+
+#[derive(Template)]
+#[template(path = "something_went_wrong.html")]
+struct SomethingWentWrongTemplate;
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         match self {
             // RowNotFound is expected, anything else is a problem
-            Self::DatabaseError(sqlx::Error::RowNotFound) => serve_404(),
-            Self::DatabaseError(_) => {
+            Self::DatabaseError(sqlx::Error::RowNotFound) => serve_404()
+                .map(|html| html.into_response())
+                .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR.into_response()),
+            Self::DatabaseError(_) => SomethingWentWrongTemplate
+                .render()
+                .map(|html| html.into_response())
+                .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR.into_response()),
+            Self::RenderError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, Body::empty()).into_response()
             }
         }
