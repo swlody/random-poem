@@ -33,8 +33,18 @@ async fn specific_poem(
     Ok((StatusCode::OK, Json(poem)).into_response())
 }
 
+#[tracing::instrument]
+async fn health(State(db): State<SqlitePool>) -> StatusCode {
+    if db.is_closed() {
+        StatusCode::INTERNAL_SERVER_ERROR
+    } else {
+        StatusCode::OK
+    }
+}
+
 pub fn routes() -> Router<SqlitePool> {
     Router::new()
+        .route("/health", get(health))
         .route("/poem/:author/:title", get(specific_poem))
         .route("/poem/random", get(random_poem))
         .route("/poem/:author/random", get(random_poem_by_author))
