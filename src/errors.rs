@@ -2,9 +2,8 @@ use axum::{
     http::StatusCode,
     response::{Html, IntoResponse, Response},
 };
-use thiserror::Error;
-
 use rinja::Template;
+use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -32,13 +31,14 @@ impl IntoResponse for Error {
     fn into_response(self) -> Response {
         match self {
             // RowNotFound is expected, anything else is a problem
-            Self::DatabaseError(sqlx::Error::RowNotFound) => serve_404()
-                .map(|html| html.into_response())
-                .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR.into_response()),
-            Self::DatabaseError(_) => SomethingWentWrongTemplate
-                .render()
-                .map(|html| html.into_response())
-                .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR.into_response()),
+            Self::DatabaseError(sqlx::Error::RowNotFound) => serve_404().map_or_else(
+                |_| StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+                IntoResponse::into_response,
+            ),
+            Self::DatabaseError(_) => SomethingWentWrongTemplate.render().map_or_else(
+                |_| StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+                IntoResponse::into_response,
+            ),
             Self::RenderError(_) => (StatusCode::INTERNAL_SERVER_ERROR).into_response(),
         }
     }

@@ -90,7 +90,7 @@ impl Poem {
     }
 
     #[tracing::instrument]
-    pub fn into_json(self) -> Result<Json<Poem>> {
+    pub fn into_json(self) -> Result<Json<Self>> {
         Ok(Json(self))
     }
 }

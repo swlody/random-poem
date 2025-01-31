@@ -79,7 +79,7 @@ mod tests {
     #[tokio::test]
     async fn can_get_specific_poem() -> anyhow::Result<()> {
         let db = SqlitePool::connect("sqlite://poems.sqlite3").await?;
-        let app = crate::layers::AddLayers::with_tracing_layer(routes().with_state(db.clone()));
+        let app = routes().with_state(db.clone());
 
         let response = app
             .oneshot(Request::get("/poem/Edgar%20Allan%20Poe/The%20Raven").body(Body::empty())?)

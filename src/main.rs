@@ -1,6 +1,6 @@
 mod api;
 mod errors;
-mod layers;
+mod middleware;
 mod poem;
 mod site;
 
@@ -8,14 +8,21 @@ use std::str::FromStr as _;
 
 use anyhow::Result;
 use axum::{serve, Router};
+use middleware::{MakeRequestUuidV7, SentryReportRequestInfoLayer};
 use secrecy::ExposeSecret;
+use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use sqlx::SqlitePool;
 use tokio::net::TcpListener;
-use tower_http::services::ServeDir;
+use tower::ServiceBuilder;
+use tower_http::{
+    services::ServeDir,
+    trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
+    ServiceBuilderExt as _,
+};
 use tracing::Level;
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _};
 
-use crate::{errors::serve_404, layers::AddLayers as _};
+use crate::errors::serve_404;
 
 struct Config {
     log_level: Option<tracing::Level>,
@@ -103,8 +110,19 @@ async fn run() -> Result<()> {
         .nest_service("/static", ServeDir::new("assets/static"))
         .fallback(|| async { serve_404() })
         .with_state(db.clone())
-        .with_sentry_layer()
-        .with_tracing_layer();
+        .layer(
+            ServiceBuilder::new()
+                .set_x_request_id(MakeRequestUuidV7)
+                .layer(NewSentryLayer::new_from_top())
+                .layer(SentryHttpLayer::with_transaction())
+                .layer(SentryReportRequestInfoLayer)
+                .layer(
+                    TraceLayer::new_for_http()
+                        .make_span_with(DefaultMakeSpan::new().include_headers(true))
+                        .on_response(DefaultOnResponse::new().include_headers(true)),
+                )
+                .propagate_x_request_id(),
+        );
 
     let listener = TcpListener::bind("0.0.0.0:8080").await?;
     serve(listener, app).await?;
