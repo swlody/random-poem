@@ -14,7 +14,7 @@ a {
 
 main {
   height: 100vh;
-  text-align: center;
+  text-align: left;
   align-content: center;
 }
 
@@ -29,4 +29,5 @@ main {
 
 #poem-content {
   max-width: 80vw;
+  padding-bottom: 2vh;
 }
