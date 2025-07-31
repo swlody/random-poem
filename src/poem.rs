@@ -52,7 +52,7 @@ impl Poem {
     }
 
     #[tracing::instrument]
-    pub async fn poem_of_the_day(db: SqlitePool) -> Result<Self> {
+    pub async fn _poem_of_the_day(db: SqlitePool) -> Result<Self> {
         let today = Utc::now().num_days_from_ce();
         let days = u64::try_from(today).expect("System clock is very confused");
         let mut rng = rand::rngs::SmallRng::seed_from_u64(days);

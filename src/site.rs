@@ -76,8 +76,8 @@ async fn author_landing(
 }
 
 #[tracing::instrument]
-async fn poem_of_the_day(State(db): State<SqlitePool>) -> Result<impl IntoResponse> {
-    Poem::poem_of_the_day(db).await?.into_html()
+async fn _poem_of_the_day(State(db): State<SqlitePool>) -> Result<impl IntoResponse> {
+    Poem::_poem_of_the_day(db).await?.into_html()
 }
 
 pub fn routes() -> Router<SqlitePool> {
