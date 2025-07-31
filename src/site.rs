@@ -1,22 +1,23 @@
+use askama::Template;
+use askama_web::WebTemplate;
 use axum::{
     extract::{Path, State},
-    response::{Html, IntoResponse, Redirect},
+    response::{IntoResponse, Redirect},
     routing::get,
     Router,
 };
-use rinja::Template;
 use sqlx::SqlitePool;
 use urlencoding::encode;
 
 use crate::{errors::Result, poem::Poem};
 
 #[tracing::instrument]
-async fn index() -> Result<impl IntoResponse> {
-    #[derive(Template)]
+async fn index() -> impl IntoResponse {
+    #[derive(Template, WebTemplate)]
     #[template(path = "index.html")]
     struct IndexTemplate;
 
-    Ok(Html(IndexTemplate.render()?))
+    IndexTemplate
 }
 
 // Maybe replace encoding for redirects:
@@ -53,9 +54,7 @@ async fn specific_poem(
     Path((author, title)): Path<(String, String)>,
     State(db): State<SqlitePool>,
 ) -> Result<impl IntoResponse> {
-    Poem::from_author_and_title(&author, &title, db)
-        .await?
-        .into_html()
+    Poem::from_author_and_title(&author, &title, db).await
 }
 
 #[tracing::instrument]
@@ -63,7 +62,7 @@ async fn author_landing(
     Path(author): Path<String>,
     State(db): State<SqlitePool>,
 ) -> Result<impl IntoResponse> {
-    #[derive(Template)]
+    #[derive(Template, WebTemplate)]
     #[template(path = "author.html")]
     struct AuthorTemplate {
         author: String,
@@ -72,12 +71,7 @@ async fn author_landing(
     // Check author exists - DB error will return a 404
     let _ = Poem::random_by_author(&author, db).await?;
 
-    Ok(Html(AuthorTemplate { author }.render()?))
-}
-
-#[tracing::instrument]
-async fn _poem_of_the_day(State(db): State<SqlitePool>) -> Result<impl IntoResponse> {
-    Poem::_poem_of_the_day(db).await?.into_html()
+    Ok(AuthorTemplate { author })
 }
 
 pub fn routes() -> Router<SqlitePool> {

@@ -1,13 +1,14 @@
-use axum::{response::Html, Json};
+use askama::Template;
+use askama_web::WebTemplate;
+use axum::Json;
 use chrono::{Datelike, Utc};
 use rand::{Rng, SeedableRng as _};
-use rinja::Template;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
 use crate::errors::Result;
 
-#[derive(Template, Serialize, Deserialize, Clone, Debug)]
+#[derive(Template, WebTemplate, Serialize, Deserialize, Clone, Debug)]
 #[template(path = "poem.html")]
 pub struct Poem {
     pub title: String,
@@ -82,11 +83,6 @@ impl Poem {
         .fetch_one(&db)
         .await?;
         Ok(poem)
-    }
-
-    #[tracing::instrument]
-    pub fn into_html(self) -> Result<Html<String>> {
-        Ok(Html(self.render()?))
     }
 
     #[tracing::instrument]

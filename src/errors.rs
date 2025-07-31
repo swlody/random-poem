@@ -1,8 +1,9 @@
+use askama::Template;
+use askama_web::WebTemplate;
 use axum::{
     http::StatusCode,
-    response::{Html, IntoResponse, Response},
+    response::{IntoResponse, Response},
 };
-use rinja::Template;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -11,19 +12,19 @@ pub enum Error {
     DatabaseError(#[from] sqlx::Error),
 
     #[error(transparent)]
-    RenderError(#[from] rinja::Error),
+    RenderError(#[from] askama::Error),
 }
 
 #[tracing::instrument]
-pub fn serve_404() -> Result<impl IntoResponse> {
-    #[derive(Template)]
+pub fn serve_404() -> impl IntoResponse {
+    #[derive(Template, WebTemplate)]
     #[template(path = "404.html")]
     struct NotFoundTemplate;
 
-    Ok(Html(NotFoundTemplate.render()?))
+    NotFoundTemplate
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "something_went_wrong.html")]
 struct SomethingWentWrongTemplate;
 
@@ -31,14 +32,8 @@ impl IntoResponse for Error {
     fn into_response(self) -> Response {
         match self {
             // RowNotFound is expected, anything else is a problem
-            Self::DatabaseError(sqlx::Error::RowNotFound) => serve_404().map_or_else(
-                |_| StatusCode::INTERNAL_SERVER_ERROR.into_response(),
-                IntoResponse::into_response,
-            ),
-            Self::DatabaseError(_) => SomethingWentWrongTemplate.render().map_or_else(
-                |_| StatusCode::INTERNAL_SERVER_ERROR.into_response(),
-                IntoResponse::into_response,
-            ),
+            Self::DatabaseError(sqlx::Error::RowNotFound) => serve_404().into_response(),
+            Self::DatabaseError(_) => SomethingWentWrongTemplate.into_response(),
             Self::RenderError(_) => (StatusCode::INTERNAL_SERVER_ERROR).into_response(),
         }
     }
